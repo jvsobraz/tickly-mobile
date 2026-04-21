@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, Alert, Image, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -16,7 +16,60 @@ function QRImage({ base64, size }: { base64: string; size: number }) {
   );
 }
 
-function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }) {
+function ResaleModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void }) {
+  const [price, setPrice] = useState(String(ticket.unitPrice));
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    const parsed = parseFloat(price.replace(',', '.'));
+    if (isNaN(parsed) || parsed <= 0) {
+      Alert.alert('Valor inválido', 'Digite um valor maior que zero.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await resaleApi.create(ticket.id, parsed);
+      Alert.alert('✅', 'Ingresso colocado em revenda!');
+      onClose();
+    } catch (err: any) {
+      Alert.alert('Erro', err.response?.data?.error || 'Erro ao colocar em revenda.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible animationType="fade" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.resaleOverlay}>
+        <View style={styles.resaleBox}>
+          <Text style={styles.resaleTitle}>💰 Revender Ingresso</Text>
+          <Text style={styles.resaleEvent} numberOfLines={2}>{ticket.eventTitle}</Text>
+          <Text style={styles.resaleType}>{ticket.ticketTypeName}</Text>
+          <Text style={styles.resaleLabel}>Preço de venda (R$)</Text>
+          <TextInput
+            style={styles.resaleInput}
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="decimal-pad"
+            placeholder="0,00"
+            placeholderTextColor="#9e9e9e"
+            autoFocus
+          />
+          <View style={styles.resaleActions}>
+            <TouchableOpacity style={styles.resaleCancelBtn} onPress={onClose}>
+              <Text style={styles.resaleCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.resaleConfirmBtn, loading && { opacity: 0.6 }]} onPress={handleConfirm} disabled={loading}>
+              <Text style={styles.resaleConfirmText}>{loading ? 'Enviando...' : 'Colocar à venda'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function TicketCard({ ticket, onPress, onResale }: { ticket: Ticket; onPress: () => void; onResale: () => void }) {
   const date = new Date(ticket.eventDateTime);
   return (
     <TouchableOpacity style={[styles.card, ticket.isUsed && styles.cardUsed]} onPress={onPress}>
@@ -33,13 +86,7 @@ function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
           {!ticket.isUsed && (
             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#e8f5e9' }]} onPress={(e) => {
               e.stopPropagation();
-              Alert.prompt?.('Revender Ingresso', 'Preço de venda (R$):', (price) => {
-                if (price && !isNaN(parseFloat(price))) {
-                  resaleApi.create(ticket.id, parseFloat(price))
-                    .then(() => Alert.alert('✅', 'Ingresso colocado em revenda!'))
-                    .catch((err: any) => Alert.alert('Erro', err.response?.data?.error || 'Erro ao colocar em revenda.'));
-                }
-              }, 'plain-text', String(ticket.unitPrice));
+              onResale();
             }}>
               <Text style={[styles.actionBtnText, { color: '#4caf50' }]}>💰 Revender</Text>
             </TouchableOpacity>
@@ -100,6 +147,7 @@ function TicketModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void 
 export default function MyTicketsScreen() {
   const { isAuthenticated } = useAuthStore();
   const [selected, setSelected] = useState<Ticket | null>(null);
+  const [resaleTicket, setResaleTicket] = useState<Ticket | null>(null);
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['my-tickets'],
@@ -127,7 +175,7 @@ export default function MyTicketsScreen() {
       <FlatList
         data={data ?? []}
         keyExtractor={t => String(t.id)}
-        renderItem={({ item }) => <TicketCard ticket={item} onPress={() => setSelected(item)} />}
+        renderItem={({ item }) => <TicketCard ticket={item} onPress={() => setSelected(item)} onResale={() => setResaleTicket(item)} />}
         contentContainerStyle={{ padding: 16, gap: 14 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} colors={['#6200ea']} />}
         ListEmptyComponent={
@@ -142,6 +190,7 @@ export default function MyTicketsScreen() {
         }
       />
       {selected && <TicketModal ticket={selected} onClose={() => setSelected(null)} />}
+      {resaleTicket && <ResaleModal ticket={resaleTicket} onClose={() => setResaleTicket(null)} />}
     </View>
   );
 }
@@ -184,4 +233,16 @@ const styles = StyleSheet.create({
   modalActions: { margin: 16, gap: 10 },
   modalActionBtn: { backgroundColor: '#ede7f6', borderRadius: 10, padding: 14, alignItems: 'center' },
   modalActionBtnText: { color: '#6200ea', fontWeight: '700', fontSize: 15 },
+  resaleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  resaleBox: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%', elevation: 8 },
+  resaleTitle: { fontSize: 18, fontWeight: '800', color: '#212121', marginBottom: 8 },
+  resaleEvent: { fontSize: 14, color: '#424242', marginBottom: 2 },
+  resaleType: { fontSize: 13, color: '#6200ea', fontWeight: '600', marginBottom: 16 },
+  resaleLabel: { fontSize: 13, color: '#616161', marginBottom: 6 },
+  resaleInput: { backgroundColor: '#f5f5f5', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12, fontSize: 18, fontWeight: '700', color: '#212121', borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 20 },
+  resaleActions: { flexDirection: 'row', gap: 10 },
+  resaleCancelBtn: { flex: 1, borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  resaleCancelText: { color: '#616161', fontWeight: '600', fontSize: 14 },
+  resaleConfirmBtn: { flex: 2, backgroundColor: '#4caf50', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  resaleConfirmText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
