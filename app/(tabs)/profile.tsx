@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/store/auth';
 
@@ -14,8 +14,13 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
   );
 }
 
+function SectionHeader({ title }: { title: string }) {
+  return <Text style={styles.sectionLabel}>{title}</Text>;
+}
+
 export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useAuthStore();
+  const isOrganizer = user?.role === 'Organizer' || user?.role === 'Admin';
 
   const handleLogout = () => {
     Alert.alert('Sair', 'Deseja sair da sua conta?', [
@@ -29,7 +34,7 @@ export default function ProfileScreen() {
       <View style={styles.center}>
         <Text style={styles.avatarLarge}>👤</Text>
         <Text style={styles.guestTitle}>Bem-vindo ao Tickly</Text>
-        <Text style={styles.guestText}>Entre na sua conta para acessar ingressos, histórico e muito mais.</Text>
+        <Text style={styles.guestText}>Entre para acessar ingressos, fidelidade, transferências e muito mais.</Text>
         <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/(auth)/login')}>
           <Text style={styles.loginBtnText}>Entrar</Text>
         </TouchableOpacity>
@@ -41,14 +46,11 @@ export default function ProfileScreen() {
   }
 
   const initials = (user?.name ?? '?').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-  const isOrganizer = user?.role === 'Organizer' || user?.role === 'Admin';
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>
         <Text style={styles.name}>{user?.name}</Text>
         <Text style={styles.email}>{user?.email}</Text>
         {isOrganizer && (
@@ -59,25 +61,38 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Minha Conta</Text>
+        <SectionHeader title="Minha Conta" />
         <MenuItem icon="🎟" label="Meus Ingressos" onPress={() => router.push('/(tabs)/my-tickets')} />
-        <MenuItem icon="🎪" label="Explorar Eventos" onPress={() => router.push('/(tabs)/events')} />
+        <MenuItem icon="⭐" label="Programa de Fidelidade" onPress={() => router.push('/(tabs)/loyalty')} />
+        <MenuItem icon="🔔" label="Notificações" onPress={() => router.push('/(tabs)/notifications')} />
+        <MenuItem icon="↗️" label="Transferir Ingresso" onPress={() => router.push('/(tabs)/my-tickets')} />
+        <MenuItem icon="🔄" label="Revenda de Ingressos" onPress={() => router.push('/resale')} />
+        <MenuItem icon="💳" label="Meus Rachas" onPress={() => router.push('/split/my')} />
       </View>
 
       {isOrganizer && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Organizador</Text>
+          <SectionHeader title="Organizador" />
+          <MenuItem icon="⚙️" label="Painel do Organizador" onPress={() => router.push('/admin')} />
+          <MenuItem icon="🎪" label="Meus Eventos" onPress={() => router.push('/admin/my-events')} />
+          <MenuItem icon="💰" label="Dashboard Financeiro" onPress={() => router.push('/admin/financial')} />
+          <MenuItem icon="📊" label="Analytics" onPress={() => router.push('/admin/analytics')} />
+          <MenuItem icon="🎟" label="Cupons" onPress={() => router.push('/admin/coupons')} />
+          <MenuItem icon="⚡" label="Flash Sales" onPress={() => router.push('/admin/flash-sales')} />
+          <MenuItem icon="🔗" label="Links de Pagamento" onPress={() => router.push('/admin/payment-links')} />
           <MenuItem icon="📷" label="Scanner de Check-in" onPress={() => router.push('/(tabs)/scan')} />
         </View>
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>App</Text>
-        <MenuItem icon="ℹ️" label="Sobre o Tickly" onPress={() => Alert.alert('Tickly', 'Plataforma de ingressos v1.0.0\nDesenvolvida com Expo + React Native')} />
+        <SectionHeader title="App" />
+        <MenuItem icon="🎪" label="Explorar Eventos" onPress={() => router.push('/(tabs)/events')} />
+        <MenuItem icon="🔄" label="Mercado de Revenda" onPress={() => router.push('/resale')} />
+        <MenuItem icon="ℹ️" label="Sobre o Tickly" onPress={() => Alert.alert('Tickly', 'Plataforma de ingressos v2.0.0\nExpo + React Native + .NET 8')} />
         <MenuItem icon="🚪" label="Sair" onPress={handleLogout} danger />
       </View>
 
-      <Text style={styles.version}>Tickly v1.0.0</Text>
+      <Text style={styles.version}>Tickly v2.0.0</Text>
     </ScrollView>
   );
 }
@@ -93,7 +108,7 @@ const styles = StyleSheet.create({
   email: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   roleBadge: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 20 },
   roleBadgeText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  section: { backgroundColor: '#fff', marginTop: 16, marginHorizontal: 0 },
+  section: { backgroundColor: '#fff', marginTop: 16 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9e9e9e', textTransform: 'uppercase', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   menuIcon: { fontSize: 22, width: 36 },
