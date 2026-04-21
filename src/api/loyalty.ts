@@ -1,9 +1,9 @@
 import { api } from './client';
 
-export interface LoyaltyBalance { points: number; tier: string; nextTierPoints: number; }
+export interface LoyaltyBalance { points: number; redeemableValue: number; }
 export interface LoyaltyTransaction {
-  id: number; points: number; description: string; transactionType: number;
-  createdAt: string; orderId?: number;
+  id: number; points: number; description: string;
+  transactionType: number; createdAt: string; orderId?: number;
 }
 
 export const loyaltyApi = {

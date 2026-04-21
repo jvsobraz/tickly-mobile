@@ -6,8 +6,8 @@ export interface AppNotification {
 }
 
 export const notificationsApi = {
-  getAll: () => api.get<AppNotification[]>('/notifications').then(r => r.data),
-  getUnreadCount: () => api.get<{ count: number }>('/notifications/unread-count').then(r => r.data),
-  markRead: (id: number) => api.put(`/notifications/${id}/read`, {}).then(r => r.data),
-  markAllRead: () => api.put('/notifications/read-all', {}).then(r => r.data),
+  getAll: () => api.get<AppNotification[]>('/AppNotifications').then(r => r.data),
+  getUnreadCount: () => api.get<{ count: number }>('/AppNotifications/unread-count').then(r => r.data),
+  markRead: (id: number) => api.post(`/AppNotifications/${id}/read`, {}).then(r => r.data),
+  markAllRead: () => api.post('/AppNotifications/read-all', {}).then(r => r.data),
 };

@@ -78,12 +78,12 @@ export default function ScanScreen() {
           <View style={[styles.resultCard, result.isValid ? styles.resultValid : styles.resultInvalid]}>
             <Text style={styles.resultIcon}>{result.isValid ? '✅' : '❌'}</Text>
             <Text style={styles.resultMessage}>{result.message}</Text>
-            {result.isValid && (
+            {result.isValid && result.ticket && (
               <View style={styles.resultDetails}>
-                {result.holderName && <Text style={styles.resultDetail}>👤 {result.holderName}</Text>}
-                {result.ticketTypeName && <Text style={styles.resultDetail}>🎟 {result.ticketTypeName}</Text>}
-                {result.eventTitle && <Text style={styles.resultDetail}>🎪 {result.eventTitle}</Text>}
-                {result.wasAlreadyUsed && <Text style={[styles.resultDetail, { color: '#e53935' }]}>⚠️ Já foi utilizado</Text>}
+                <Text style={styles.resultDetail}>👤 {result.ticket.holderName}</Text>
+                <Text style={styles.resultDetail}>🎟 {result.ticket.ticketTypeName}</Text>
+                <Text style={styles.resultDetail}>🎪 {result.ticket.eventTitle}</Text>
+                {result.ticket.wasAlreadyUsed && <Text style={[styles.resultDetail, { color: '#e53935' }]}>⚠️ Já foi utilizado</Text>}
               </View>
             )}
           </View>

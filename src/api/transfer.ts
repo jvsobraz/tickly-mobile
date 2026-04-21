@@ -10,10 +10,11 @@ export interface TicketTransfer {
 
 export const transferApi = {
   initiate: (ticketId: number, toEmail: string, message?: string) =>
-    api.post<TicketTransfer>('/ticket-transfers', { ticketId, toEmail, message }).then(r => r.data),
-  getMy: () => api.get<TicketTransfer[]>('/ticket-transfers/my').then(r => r.data),
+    api.post<TicketTransfer>('/TicketTransfers', { ticketId, toEmail, message }).then(r => r.data),
+  getSent: () => api.get<TicketTransfer[]>('/TicketTransfers/sent').then(r => r.data),
+  getPending: () => api.get<TicketTransfer[]>('/TicketTransfers/pending').then(r => r.data),
   accept: (token: string) =>
-    api.post<TicketTransfer>(`/ticket-transfers/${token}/accept`, {}).then(r => r.data),
+    api.post<TicketTransfer>(`/TicketTransfers/accept/${token}`, {}).then(r => r.data),
   cancel: (transferId: number) =>
-    api.delete(`/ticket-transfers/${transferId}`).then(r => r.data),
+    api.delete(`/TicketTransfers/${transferId}`).then(r => r.data),
 };

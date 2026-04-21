@@ -1,11 +1,20 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, Alert, Image } from 'react-native';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import QRCode from 'react-native-qrcode-svg';
 import { ticketsApi, Ticket } from '../../src/api/tickets';
 import { resaleApi } from '../../src/api/resale';
 import { useAuthStore } from '../../src/store/auth';
+
+function QRImage({ base64, size }: { base64: string; size: number }) {
+  return (
+    <Image
+      source={{ uri: `data:image/png;base64,${base64}` }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+}
 
 function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }) {
   const date = new Date(ticket.eventDateTime);
@@ -30,7 +39,7 @@ function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
                     .then(() => Alert.alert('✅', 'Ingresso colocado em revenda!'))
                     .catch((err: any) => Alert.alert('Erro', err.response?.data?.error || 'Erro ao colocar em revenda.'));
                 }
-              }, 'plain-text', String(ticket.price));
+              }, 'plain-text', String(ticket.unitPrice));
             }}>
               <Text style={[styles.actionBtnText, { color: '#4caf50' }]}>💰 Revender</Text>
             </TouchableOpacity>
@@ -38,7 +47,7 @@ function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
         </View>
       </View>
       <View style={styles.cardRight}>
-        <QRCode value={ticket.qrCodeHash} size={80} />
+        <QRImage base64={ticket.qrCodeBase64} size={80} />
         {ticket.isUsed && (
           <View style={styles.usedBadge}><Text style={styles.usedBadgeText}>USADO</Text></View>
         )}
@@ -57,7 +66,7 @@ function TicketModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void 
           <TouchableOpacity onPress={onClose}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
         </View>
         <View style={styles.modalQr}>
-          <QRCode value={ticket.qrCodeHash} size={220} />
+          <QRImage base64={ticket.qrCodeBase64} size={220} />
           {ticket.isUsed && (
             <View style={styles.usedOverlay}><Text style={styles.usedOverlayText}>UTILIZADO</Text></View>
           )}
@@ -69,9 +78,8 @@ function TicketModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void 
             { label: 'Data', value: date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) },
             { label: 'Horário', value: date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) },
             { label: 'Local', value: ticket.eventVenue },
-            { label: 'Titular', value: ticket.holderName },
             { label: 'Série', value: `#${ticket.serialNumber}` },
-            { label: 'Valor', value: ticket.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) },
+            { label: 'Valor', value: ticket.unitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) },
           ].map(row => (
             <View key={row.label} style={styles.infoRow}>
               <Text style={styles.infoLabel}>{row.label}</Text>

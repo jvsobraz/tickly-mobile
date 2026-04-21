@@ -1,15 +1,19 @@
 import { api } from './client';
 
 export interface Ticket {
-  id: number; serialNumber: string; qrCodeHash: string; qrCodeDataUrl?: string;
-  isUsed: boolean; usedAt?: string; holderName: string;
-  ticketTypeName: string; eventTitle: string; eventDateTime: string;
-  eventVenue: string; price: number;
+  id: number; serialNumber: string; qrCodeBase64: string;
+  isUsed: boolean; usedAt?: string;
+  ticketTypeName: string; eventTitle: string; eventId: number;
+  eventDateTime: string; eventVenue: string; eventCity: string;
+  unitPrice: number;
 }
 export interface ValidateResult {
   isValid: boolean; message: string;
-  holderName?: string; ticketTypeName?: string; eventTitle?: string;
-  wasAlreadyUsed?: boolean; usedAt?: string;
+  ticket?: {
+    ticketId: number; serialNumber: string; eventTitle: string;
+    ticketTypeName: string; holderName: string;
+    wasAlreadyUsed: boolean; usedAt?: string;
+  };
 }
 export interface OrderItem { ticketTypeId: number; quantity: number; }
 export interface CreateOrderRequest { items: OrderItem[]; paymentMethod: number; }
@@ -20,9 +24,9 @@ export interface OrderResponse {
 }
 
 export const ticketsApi = {
-  getMyTickets: () => api.get<Ticket[]>('/Tickets/my').then(r => r.data),
-  validate: (hash: string) =>
-    api.post<ValidateResult>('/Tickets/validate', { qrCodeHash: hash }).then(r => r.data),
+  getMyTickets: () => api.get<Ticket[]>('/tickets/my-tickets').then(r => r.data),
+  validate: (qrCodeHash: string) =>
+    api.post<ValidateResult>('/tickets/validate', { qrCodeHash }).then(r => r.data),
   createOrder: (data: CreateOrderRequest) =>
     api.post<OrderResponse>('/orders', data).then(r => r.data),
 };

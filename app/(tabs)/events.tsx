@@ -9,9 +9,9 @@ import { eventsApi, EventItem } from '../../src/api/events';
 
 function EventCard({ event }: { event: EventItem }) {
   const date = new Date(event.dateTime);
-  const minPrice = event.ticketTypes.length > 0
+  const minPrice = event.minPrice ?? (event.ticketTypes && event.ticketTypes.length > 0
     ? Math.min(...event.ticketTypes.filter(t => t.isActive).map(t => t.price))
-    : null;
+    : null);
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => router.push(`/event/${event.id}`)}>
@@ -50,7 +50,7 @@ export default function EventsScreen() {
     queryFn: () => eventsApi.list({ pageSize: 50 }),
   });
 
-  const filtered = (data ?? []).filter(e =>
+  const filtered = (data?.items ?? []).filter(e =>
     e.title.toLowerCase().includes(search.toLowerCase()) ||
     e.city.toLowerCase().includes(search.toLowerCase())
   );

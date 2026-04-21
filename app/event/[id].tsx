@@ -108,7 +108,7 @@ export default function EventDetailScreen() {
 
   const date = new Date(event.dateTime);
   const totalItems = Object.values(quantities).reduce((s, v) => s + (v ?? 0), 0);
-  const totalAmount = event.ticketTypes.reduce((s, tt) => s + tt.price * (quantities[tt.id] ?? 0), 0);
+  const totalAmount = (event.ticketTypes ?? []).reduce((s, tt) => s + tt.price * (quantities[tt.id] ?? 0), 0);
 
   const requireAuth = (action: () => void) => {
     if (!isAuthenticated) {
@@ -122,13 +122,13 @@ export default function EventDetailScreen() {
   };
 
   const buyTickets = () => requireAuth(() => {
-    const items = event.ticketTypes
+    const items = (event.ticketTypes ?? [])
       .filter(tt => (quantities[tt.id] ?? 0) > 0)
       .map(tt => ({ ticketTypeId: tt.id, quantity: quantities[tt.id] }));
     createOrderMutation.mutate({ items, paymentMethod });
   });
 
-  const hasSoldOut = event.ticketTypes.some(tt => tt.isActive && tt.quantityAvailable === 0);
+  const hasSoldOut = (event.ticketTypes ?? []).some(tt => tt.isActive && tt.quantityAvailable === 0);
 
   return (
     <ScrollView style={styles.container}>
@@ -166,7 +166,7 @@ export default function EventDetailScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ingressos</Text>
-          {event.ticketTypes.map(tt => {
+          {(event.ticketTypes ?? []).map(tt => {
             const qty = quantities[tt.id] ?? 0;
             const soldOut = tt.isActive && tt.quantityAvailable === 0;
             return (
@@ -237,7 +237,7 @@ export default function EventDetailScreen() {
             <TouchableOpacity
               style={styles.splitBtn}
               onPress={() => requireAuth(() => {
-                setSplitTicketTypeId(event.ticketTypes.find(tt => (quantities[tt.id] ?? 0) > 0)?.id ?? event.ticketTypes[0].id);
+                setSplitTicketTypeId((event.ticketTypes ?? []).find(tt => (quantities[tt.id] ?? 0) > 0)?.id ?? (event.ticketTypes ?? [])[0]?.id ?? 0);
                 setShowSplitModal(true);
               })}>
               <Text style={styles.splitBtnText}>💳 Rachar com Amigos</Text>
@@ -292,7 +292,7 @@ export default function EventDetailScreen() {
           </View>
           <ScrollView style={styles.modalBody}>
             <Text style={styles.label}>Tipo de Ingresso</Text>
-            {event.ticketTypes.filter(tt => tt.isActive && tt.quantityAvailable > 0).map(tt => (
+            {(event.ticketTypes ?? []).filter(tt => tt.isActive && tt.quantityAvailable > 0).map(tt => (
               <TouchableOpacity
                 key={tt.id}
                 style={[styles.ttSelectBtn, splitTicketTypeId === tt.id && styles.ttSelectBtnActive]}

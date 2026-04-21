@@ -5,8 +5,18 @@ import { useAuthStore } from '../../src/store/auth';
 import { router } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 
-const TIER_COLORS: Record<string, string> = { Bronze: '#cd7f32', Silver: '#aaa', Gold: '#ffd700', Platinum: '#e5e4e2' };
-const TIER_EMOJI: Record<string, string> = { Bronze: '🥉', Silver: '🥈', Gold: '🥇', Platinum: '💎' };
+const TIER_COLORS = ['#cd7f32', '#aaa', '#ffd700', '#e5e4e2'];
+const TIER_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum'];
+const TIER_EMOJI = ['🥉', '🥈', '🥇', '💎'];
+const TIER_THRESHOLDS = [0, 1000, 5000, 15000];
+
+function getTierIndex(points: number) {
+  let idx = 0;
+  for (let i = TIER_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (points >= TIER_THRESHOLDS[i]) { idx = i; break; }
+  }
+  return idx;
+}
 
 export default function LoyaltyScreen() {
   const { isAuthenticated } = useAuthStore();
@@ -36,8 +46,12 @@ export default function LoyaltyScreen() {
 
   if (loadingBalance) return <ActivityIndicator size="large" color="#6200ea" style={{ marginTop: 80 }} />;
 
-  const tier = balance?.tier ?? 'Bronze';
-  const tierColor = TIER_COLORS[tier] ?? '#cd7f32';
+  const points = balance?.points ?? 0;
+  const tierIdx = getTierIndex(points);
+  const tierColor = TIER_COLORS[tierIdx];
+  const tierName = TIER_NAMES[tierIdx];
+  const nextThreshold = TIER_THRESHOLDS[tierIdx + 1];
+  const ptsToNext = nextThreshold ? nextThreshold - points : 0;
 
   return (
     <ScrollView
@@ -46,14 +60,17 @@ export default function LoyaltyScreen() {
 
       {/* Balance card */}
       <View style={[styles.balanceCard, { backgroundColor: tierColor }]}>
-        <Text style={styles.tierEmoji}>{TIER_EMOJI[tier] ?? '⭐'}</Text>
-        <Text style={styles.tierName}>{tier}</Text>
-        <Text style={styles.pointsValue}>{balance?.points.toLocaleString('pt-BR') ?? 0}</Text>
+        <Text style={styles.tierEmoji}>{TIER_EMOJI[tierIdx]}</Text>
+        <Text style={styles.tierName}>{tierName}</Text>
+        <Text style={styles.pointsValue}>{points.toLocaleString('pt-BR')}</Text>
         <Text style={styles.pointsLabel}>pontos</Text>
-        {(balance?.nextTierPoints ?? 0) > 0 && (
+        {balance?.redeemableValue != null && balance.redeemableValue > 0 && (
           <Text style={styles.nextTier}>
-            Faltam {balance!.nextTierPoints.toLocaleString('pt-BR')} pts para o próximo nível
+            Valor resgatável: {balance.redeemableValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </Text>
+        )}
+        {ptsToNext > 0 && (
+          <Text style={styles.nextTier}>Faltam {ptsToNext.toLocaleString('pt-BR')} pts para {TIER_NAMES[tierIdx + 1]}</Text>
         )}
       </View>
 
@@ -61,18 +78,18 @@ export default function LoyaltyScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Benefícios do Tier</Text>
         {[
-          { tier: 'Bronze', desc: 'Acumule 1 ponto por R$1 gasto', pts: '0+' },
-          { tier: 'Silver', desc: '1,5x pontos + acesso antecipado', pts: '1.000+' },
-          { tier: 'Gold', desc: '2x pontos + descontos exclusivos', pts: '5.000+' },
-          { tier: 'Platinum', desc: '3x pontos + VIP em eventos parceiros', pts: '15.000+' },
-        ].map(t => (
-          <View key={t.tier} style={[styles.tierRow, tier === t.tier && styles.tierRowActive]}>
-            <Text style={styles.tierRowEmoji}>{TIER_EMOJI[t.tier]}</Text>
+          { name: 'Bronze', desc: 'Acumule 1 ponto por R$1 gasto', pts: '0+' },
+          { name: 'Silver', desc: '1,5x pontos + acesso antecipado', pts: '1.000+' },
+          { name: 'Gold', desc: '2x pontos + descontos exclusivos', pts: '5.000+' },
+          { name: 'Platinum', desc: '3x pontos + VIP em eventos parceiros', pts: '15.000+' },
+        ].map((t, i) => (
+          <View key={t.name} style={[styles.tierRow, tierIdx === i && styles.tierRowActive]}>
+            <Text style={styles.tierRowEmoji}>{TIER_EMOJI[i]}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.tierRowName}>{t.tier} <Text style={styles.tierRowPts}>({t.pts} pts)</Text></Text>
+              <Text style={styles.tierRowName}>{t.name} <Text style={styles.tierRowPts}>({t.pts} pts)</Text></Text>
               <Text style={styles.tierRowDesc}>{t.desc}</Text>
             </View>
-            {tier === t.tier && <Text style={styles.currentBadge}>Atual</Text>}
+            {tierIdx === i && <Text style={styles.currentBadge}>Atual</Text>}
           </View>
         ))}
       </View>
