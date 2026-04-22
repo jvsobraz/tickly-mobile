@@ -83,10 +83,11 @@ mobile/
 │   │   ├── notifications.ts
 │   │   ├── split.ts
 │   │   └── ...
+│   ├── notifications.ts         # Setup push notifications (permissão + registro de token)
 │   └── store/
 │       └── auth.ts              # Zustand store (JWT + refresh token)
 ├── .env                         # EXPO_PUBLIC_API_URL
-└── app.json                     # Configuração Expo
+└── app.json                     # Configuração Expo (scheme, plugins, intentFilters)
 ```
 
 **Padrões:**
@@ -99,6 +100,8 @@ mobile/
 | Axios interceptor | Injeta `Authorization: Bearer` automaticamente; faz refresh automático em 401 |
 | `PagedResult<T>` | Backend retorna `{ items, total, page, pageSize, totalPages }` para listagens paginadas |
 | QR code base64 | Backend entrega QR code pré-renderizado como PNG base64 — exibido com `Image` nativo |
+| Deep links | `scheme: tickly://` + `intentFilters` Android; `_layout.tsx` intercepta e navega para a rota correta |
+| Push notifications | `expo-notifications` solicita permissão, registra token no backend e exibe alertas nativos |
 
 ---
 
@@ -114,8 +117,10 @@ mobile/
 | Compra de ingressos | Seleção de tipo + quantidade; criação de pedido via API |
 | Pagamento split | Dividir ingresso entre amigos via link de pagamento |
 | Meus ingressos | QR code PNG exibido por `Image` + badge "USADO" |
-| Transferência | Enviar ingresso para outro usuário por e-mail |
+| Revender ingresso | Modal nativo com campo de preço — funciona em iOS e Android (sem `Alert.prompt`) |
+| Transferência | Enviar ingresso para outro usuário por e-mail; aceitar via deep link |
 | Mercado de revenda | Buscar por evento ID; comprar ingresso de terceiros |
+| Push notifications | Recebe notificação nativa ao ter ingresso confirmado; toque navega para a tela correta |
 | Fila virtual | Entrar na fila de espera de eventos esgotados |
 | Mapa de assentos | Visualizar e selecionar assentos disponíveis |
 | Programa de fidelidade | Saldo de pontos, tier Bronze/Silver/Gold/Platinum, histórico |
@@ -191,6 +196,34 @@ EXPO_PUBLIC_API_URL=https://tickly-backend-production.up.railway.app
 > Para usar com backend local no celular físico, use o IP da sua máquina na rede (ex: `192.168.1.x`) — `localhost` não funciona no dispositivo físico.
 
 Após alterar o `.env`, reinicie com `npx expo start --clear`.
+
+---
+
+## Deep Links
+
+O app responde ao scheme `tickly://` e a URLs HTTPS do domínio de produção.
+
+| URL | Ação |
+|---|---|
+| `tickly://transfer/accept/{token}` | Abre tela para aceitar transferência de ingresso |
+| `tickly://split/{token}` | Abre tela para pagar parcela de split |
+| `https://tickly-frontend-rho.vercel.app/ticket-transfers/*` | Redireciona para o app no Android via App Links |
+
+O link de aceitação de transferência é enviado por e-mail pelo backend. Com o app instalado, o link abre diretamente na tela correta.
+
+---
+
+## Push Notifications
+
+O fluxo completo de push notifications funciona assim:
+
+1. No primeiro acesso, `registerForPushNotificationsAsync()` solicita permissão ao usuário
+2. Obtém o token Expo do dispositivo e envia para `PUT /Auth/push-token` no backend
+3. O backend armazena o token em `users.ExpoPushToken`
+4. Quando um pagamento é confirmado via Stripe webhook, o backend dispara push via Expo Push API
+5. O app exibe a notificação nativamente; ao tocar, navega para a tela indicada
+
+> **Nota:** Push notifications remotas requerem um build nativo (EAS Build). Em Expo Go, apenas notificações locais funcionam.
 
 ---
 
